@@ -1,0 +1,16 @@
+---
+title: "Homework 3"
+author: "Elise Mantell"
+date: 2019-10-14
+output: github_document
+---
+  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readxl)
+library(ggplot2)
+library(ggridges)
+```
+### Problem 1
