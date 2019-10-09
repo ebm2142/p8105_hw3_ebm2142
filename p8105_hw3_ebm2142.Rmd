@@ -14,3 +14,57 @@ library(ggplot2)
 library(ggridges)
 ```
 ### Problem 1
+
+```{r upload dataset}
+library(p8105.datasets) 
+data("instacart") 
+
+```
+
+#### The goal is to do some exploration of this dataset. To that end, write a short description of the dataset, noting the size and structure of the data, describing some key variables, and giving illstrative examples of observations. 
+
+```{r exploring the dataset}
+str(instacart)
+count(instacart, aisle) %>% ungroup() %>% arrange(desc(n))
+```
+
+##### _This dataset includes information about instacart orders, including items ordered, when they were ordred, and what aisle or department they come from. There are 1384617 observations of 15 variables. There are 134 aisles and the aisle with the most orders is the fresh vegetables aisle._
+
+#### Make a plot that shows the number of items ordered in each aisle, limiting this to aisles with more than 10000 items ordered. Arrange aisles sensibly, and organize your plot so others can read it.
+
+```{r making number of orders plot} 
+instacart %>%
+count(aisle) %>% 
+mutate(aisle = forcats::fct_reorder(aisle, n, .desc = TRUE)) %>% 
+ggplot(aes(x = aisle, y = n)) + coord_flip() +
+geom_bar(stat = "identity") +
+labs(title = "Number of Orders in Aisle",
+       x = "Aisle",
+       y = "Number of Orders") 
+
+```
+
+#### Make a table showing the three most popular items in each of the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”. Include the number of times each item is ordered in your table.
+
+```{r making table of orders} 
+instacart %>% 
+  filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) %>% 
+  group_by(aisle, product_name) %>% 
+  summarize(n = n()) %>% 
+  top_n(3) %>% 
+  rename("Aisle" = aisle, "Product" = product_name,  "Number of Orders" = n) %>% 
+  knitr::kable()
+```
+
+#### Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week; format this table for human readers (i.e. produce a 2 x 7 table)
+
+```{r making table days} 
+instacart %>% 
+filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>%  
+  select(product_name, order_dow, order_hour_of_day) %>% 
+  group_by(product_name, order_dow) %>% 
+  summarize(mean_hour = round(mean(order_hour_of_day))) %>%
+  spread(key = order_dow, value = mean_hour) %>% 
+  rename("Product Name" = product_name) %>% 
+  knitr::kable()
+```
