@@ -113,9 +113,62 @@ brfss %>%
 
 #### Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. 
 
-
+```{r new dataset}
+brfss_new = brfss %>% 
+janitor::clean_names() %>% 
+filter(response == "Excellent") %>% 
+group_by(state, year) %>% 
+summarise(avg_data_value = mean(data_value))
+```
 
 #### Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
+```{r SPAGHETTI}
+brfss_new %>% 
+  group_by(state, year) %>% 
+  ggplot(aes(x = year, y = avg_data_value)) + 
+    geom_line(aes(color = state)) + 
+    labs(title = "Spaghetti Plot of Average Value Over Time for States",
+         x = "Year", 
+         y = "Average Value") + 
+    theme(legend.position = "bottom", 
+          legend.direction = "horizontal", 
+          legend.key.width = unit(.1, "in")) + 
+    guides(color = guide_legend(ncol = 17))
+```
 
+##### _This is terribly difficult to read with so many states. I have no meaningful comments, but it is quite pretty in my humble opinion._
 
 #### Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State
+
+```{r two panel plot}
+brfss %>% 
+  filter(state == "NY") %>%
+  filter(year == "2006", year == "2010") 
+
+```
+
+### Problem 3
+
+#### Load, tidy, and otherwise wrangle the data. Your final dataset should include all originally observed variables and values; have useful variable names; include a weekday vs weekend variable; and encode data with reasonable variable classes. Describe the resulting dataset (e.g. what variables exist, how many observations, etc).
+
+
+```{r read and tidy accel}
+accel_data = read_csv("./data/accel_data.csv") %>%
+  janitor::clean_names() %>%
+  mutate(day_type = ifelse(day == "Saturday" | day == "Sunday", "Weekend", "Weekday"))
+```
+
+##### _The dataset includes 35 observations of 1444 variables._
+
+#### Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate accross minutes to create a total activity variable for each day, and create a table showing these totals. Are any trends apparent?
+
+```{r aggregate activity and make table}
+accel_data %>%
+mutate(tot_daily_activity = rowSums(.[4:1443])) %>%
+  group_by(week, day, tot_daily_activity) %>% 
+  select(week, day, tot_daily_activity) %>%
+  knitr::kable()
+```
+
+#### Accelerometer data allows the inspection activity over the course of the day. Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. Describe in words any patterns or conclusions you can make based on this graph
+
