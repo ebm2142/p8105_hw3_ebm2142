@@ -44,6 +44,8 @@ labs(title = "Number of Orders in Aisle",
 
 ```
 
+##### _This is impossible to read because idk how to filter it yet._
+
 #### Make a table showing the three most popular items in each of the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”. Include the number of times each item is ordered in your table.
 
 ```{r making table of orders} 
@@ -52,9 +54,13 @@ instacart %>%
   group_by(aisle, product_name) %>% 
   summarize(n = n()) %>% 
   top_n(3) %>% 
+  arrange(desc(n)) %>%
   rename("Aisle" = aisle, "Product" = product_name,  "Number of Orders" = n) %>% 
   knitr::kable()
 ```
+
+##### _The most commonly ordered packaged vegetables or fruits are all organic (spinach, raspberries, and blueberries). The second most commonly ordered dog food care item also appears to be organic. The most commonly ordered baking ingredients includes two types of sugar._
+
 
 #### Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week; format this table for human readers (i.e. produce a 2 x 7 table)
 
@@ -68,3 +74,48 @@ filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>%
   rename("Product Name" = product_name) %>% 
   knitr::kable()
 ```
+
+##### _People, on average, don't vary the time of day they order either apples or ice cream depending on the day of the week by more than about 3 hours._
+
+### Problem 2
+
+#### Focus on the “Overall Health” topic. Include only responses from “Excellent” to “Poor”. Organize responses as a factor taking levels ordered from “Poor” to “Excellent"
+
+```{r loading and cleaning brfss}
+brfss = p8105.datasets::brfss_smart2010 %>% 
+janitor::clean_names() %>% 
+rename(state = locationabbr, county = locationdesc) %>% 
+filter(topic == "Overall Health") %>% 
+mutate(response = forcats::fct_relevel(response, c("Excellent", "Very good", "Good", "Fair", "Poor")))
+```
+
+#### In 2002, which states were observed at 7 or more locations? What about in 2010?
+```{r states at 7+ locations in 2002}
+brfss %>% 
+  filter(year == 2002) %>% 
+  distinct(state, county) %>% 
+  count(state) %>% 
+  filter(n == 7) 
+```
+
+##### _Three states were observed at more than 7 locations in 2002, two in the south (FL and NC) and one in the northeast (CT)._
+
+```{r states at 7+ locations in 2010}
+brfss %>% 
+  filter(year == 2010) %>% 
+  distinct(state, county) %>% 
+  count(state) %>% 
+  filter(n == 7) 
+```
+
+##### _Three different states were observed at more than 7 locations in 2010, one in the south (SC), one in the northeast (PA), and one in the west (CO)._
+
+
+#### Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. 
+
+
+
+#### Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
+
+
+#### Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State
