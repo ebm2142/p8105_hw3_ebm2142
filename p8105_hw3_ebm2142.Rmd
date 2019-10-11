@@ -32,7 +32,7 @@ count(instacart, aisle) %>% ungroup() %>% arrange(desc(n))
 
 #### Make a plot that shows the number of items ordered in each aisle, limiting this to aisles with more than 10000 items ordered. Arrange aisles sensibly, and organize your plot so others can read it.
 
-```{r fig.width=14, fig.height=12} 
+```{r fig.width=10, fig.height=10} 
 instacart %>%
 count(aisle) %>% 
 filter(n > 10000) %>% 
@@ -68,14 +68,6 @@ instacart %>%
 instacart %>% 
 filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>% 
   select(product_name, order_dow, order_hour_of_day) %>% 
-  mutate(dow_name = recode(order_dow, 
-                      '1' = "Mon",
-                      '2' = "Tues",
-                      '3' = "Wed",
-                      '4'  = "Thurs",
-                      '5' = "Fri",
-                      '6' = "Sat",
-                      '0' = "Sun")) %>% 
   group_by(product_name, order_dow) %>% 
   summarize(mean_hour = round(mean(order_hour_of_day))) %>%
   spread(key = order_dow, value = mean_hour) %>% 
@@ -130,7 +122,7 @@ summarise(avg_data_value = mean(data_value))
 ```
 
 #### Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
-```{r SPAGHETTI}
+```{r fig.width=12, fig.height=12}
 brfss_new %>% 
   group_by(state, year) %>% 
   ggplot(aes(x = year, y = avg_data_value)) + 
@@ -140,7 +132,7 @@ brfss_new %>%
          y = "Average Value") + 
     theme(legend.position = "bottom", 
           legend.direction = "horizontal") + 
-    guides(color = guide_legend(ncol = 17))
+    guides(color = guide_legend(ncol = 18))
 ```
 
 ##### _This is terribly difficult to read with so many states. I have no meaningful comments, but it is quite pretty in my humble opinion._
@@ -157,6 +149,8 @@ brfss %>%
   geom_boxplot() + facet_grid(. ~year)
 ```
 
+##### _The general distribution of responses across NY state in 2006 and 2010 are quite similar._
+
 ### Problem 3
 
 #### Load, tidy, and otherwise wrangle the data. Your final dataset should include all originally observed variables and values; have useful variable names; include a weekday vs weekend variable; and encode data with reasonable variable classes. Describe the resulting dataset (e.g. what variables exist, how many observations, etc).
@@ -165,7 +159,8 @@ brfss %>%
 ```{r read and tidy accel}
 accel_data = read_csv("./data/accel_data.csv") %>%
   janitor::clean_names() %>%
-  mutate(day_type = ifelse(day == "Saturday" | day == "Sunday", "Weekend", "Weekday"))
+  mutate(day_type = ifelse(day == "Saturday" | day == "Sunday", "Weekend", "Weekday")) %>%
+mutate(day = forcats::fct_relevel(day, c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")))
 ```
 
 ##### _The dataset includes 35 observations of 1444 variables._
@@ -182,6 +177,7 @@ mutate(tot_daily_activity = rowSums(.[4:1443]))
 accel_data_tot %>%  
 group_by(week, day, tot_daily_activity) %>% 
 select(week, day, tot_daily_activity) %>%
+arrange(desc(day)) %>%
 knitr::kable()
 ```
 
@@ -217,11 +213,24 @@ mutate(H20 = rowSums(.[1144:1203])) %>%
 mutate(H21 = rowSums(.[1204:1263])) %>%
 mutate(H22 = rowSums(.[1264:1323])) %>%
 mutate(H23 = rowSums(.[1324:1383])) %>%
-mutate(H24 = rowSums(.[1384:1443])) %>%
-pivot_longer(H1:H24, 
-  names_to = "hour", values_to = "aph") 
+mutate(H24 = rowSums(.[1384:1443])) 
 ```
 
+```{r }
+accel_tot_hours_clean = 
+accel_data_tot_hours %>%
+pivot_longer(H1:H24, names_to = "hour", values_to = "aph") %>%
+mutate(hour = forcats::fct_relevel(hour, c("H1", "H2", "H3", "H4","H5","H6","H7","H8","H9","H10", "H11", "H12","H13","H14","H15","H16","H17","H18","H19","H20","H21","H22","H23","H24")))
+```
 
+```{r fig.width=14, fig.height=8}
+accel_tot_hours_clean %>%
+  arrange(desc(hour)) %>%
+  ggplot(aes(x = hour, y = aph, group = day)) + 
+    geom_line(aes(color = day)) + 
+    labs(title = "Activity Per Hour By Day of Week",
+         x = "Hour of the Day", 
+         y = "Activity") 
+```
 
-
+##### _Early morning hours always have less activity and Friday tends to have more late night activity. Both weekend days seem to show activity spikes later in the morning._
