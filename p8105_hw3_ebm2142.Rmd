@@ -32,19 +32,19 @@ count(instacart, aisle) %>% ungroup() %>% arrange(desc(n))
 
 #### Make a plot that shows the number of items ordered in each aisle, limiting this to aisles with more than 10000 items ordered. Arrange aisles sensibly, and organize your plot so others can read it.
 
-```{r making number of orders plot} 
+```{r fig.width=14, fig.height=12} 
 instacart %>%
 count(aisle) %>% 
+filter(n > 10000) %>% 
 mutate(aisle = forcats::fct_reorder(aisle, n, .desc = TRUE)) %>% 
 ggplot(aes(x = aisle, y = n)) + coord_flip() +
 geom_bar(stat = "identity") +
 labs(title = "Number of Orders in Aisle",
        x = "Aisle",
-       y = "Number of Orders") 
-
+       y = "Number of Orders")
 ```
 
-##### _This is impossible to read because idk how to filter it yet._
+##### _By far the aisles with the most orders are healthy (fruits, vegetables, and yogurt among the top 4)._
 
 #### Make a table showing the three most popular items in each of the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”. Include the number of times each item is ordered in your table.
 
@@ -66,12 +66,20 @@ instacart %>%
 
 ```{r making table days} 
 instacart %>% 
-filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>%  
+filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>% 
   select(product_name, order_dow, order_hour_of_day) %>% 
+  mutate(dow_name = recode(order_dow, 
+                      '1' = "Mon",
+                      '2' = "Tues",
+                      '3' = "Wed",
+                      '4'  = "Thurs",
+                      '5' = "Fri",
+                      '6' = "Sat",
+                      '0' = "Sun")) %>% 
   group_by(product_name, order_dow) %>% 
   summarize(mean_hour = round(mean(order_hour_of_day))) %>%
   spread(key = order_dow, value = mean_hour) %>% 
-  rename("Product Name" = product_name) %>% 
+  rename("Product" = product_name) %>% 
   knitr::kable()
 ```
 
@@ -95,20 +103,20 @@ brfss %>%
   filter(year == 2002) %>% 
   distinct(state, county) %>% 
   count(state) %>% 
-  filter(n == 7) 
+  filter(n >= 7) 
 ```
 
-##### _Three states were observed at more than 7 locations in 2002, two in the south (FL and NC) and one in the northeast (CT)._
+##### _Six states were observed at more than 7 locations in 2002, two in the south (FL and NC) and the remaining in the northeast (CT, MA, NJ, PA)._
 
 ```{r states at 7+ locations in 2010}
 brfss %>% 
   filter(year == 2010) %>% 
   distinct(state, county) %>% 
   count(state) %>% 
-  filter(n == 7) 
+  filter(n >= 7) 
 ```
 
-##### _Three different states were observed at more than 7 locations in 2010, one in the south (SC), one in the northeast (PA), and one in the west (CO)._
+##### _Fourteen different states were observed at more than 7 locations in 2010, four in the south (FL, NC, SC, TX), the majority in the northeast (MA, MD, PA, NJ, NY, and PA), and the remaining in the west (CO, WA, OH, NE)._
 
 
 #### Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. 
@@ -131,8 +139,7 @@ brfss_new %>%
          x = "Year", 
          y = "Average Value") + 
     theme(legend.position = "bottom", 
-          legend.direction = "horizontal", 
-          legend.key.width = unit(.1, "in")) + 
+          legend.direction = "horizontal") + 
     guides(color = guide_legend(ncol = 17))
 ```
 
@@ -140,11 +147,14 @@ brfss_new %>%
 
 #### Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State
 
-```{r two panel plot}
+```{r fig.width=8, fig.height=8}
 brfss %>% 
   filter(state == "NY") %>%
-  filter(year == "2006", year == "2010") 
-
+  filter(year == "2006" | year == "2010") %>%
+  select(year, data_value, county, response) %>%
+  mutate(data_value = as.numeric(data_value), year = as.factor(year), county = as.factor(county)) %>%
+  ggplot(aes(x = response, y = data_value)) + 
+  geom_boxplot() + facet_grid(. ~year)
 ```
 
 ### Problem 3
@@ -162,13 +172,56 @@ accel_data = read_csv("./data/accel_data.csv") %>%
 
 #### Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate accross minutes to create a total activity variable for each day, and create a table showing these totals. Are any trends apparent?
 
-```{r aggregate activity and make table}
+```{r aggregate activity}
+accel_data_tot = 
 accel_data %>%
-mutate(tot_daily_activity = rowSums(.[4:1443])) %>%
-  group_by(week, day, tot_daily_activity) %>% 
-  select(week, day, tot_daily_activity) %>%
-  knitr::kable()
+mutate(tot_daily_activity = rowSums(.[4:1443]))
 ```
 
-#### Accelerometer data allows the inspection activity over the course of the day. Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. Describe in words any patterns or conclusions you can make based on this graph
+```{r making table}
+accel_data_tot %>%  
+group_by(week, day, tot_daily_activity) %>% 
+select(week, day, tot_daily_activity) %>%
+knitr::kable()
+```
+
+##### _There does not appear to be strong trends relating to either week number or day of the week._
+
+
+#### Accelerometer data allows the inspection activity over the course of the day. Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. Describe in words any patterns or conclusions you can make based on this graph.
+
+
+```{r making hour variables}
+accel_data_tot_hours = 
+accel_data_tot %>%
+mutate(H1 = rowSums(.[4:63])) %>%
+mutate(H2 = rowSums(.[64:123])) %>%
+mutate(H3 = rowSums(.[124:183])) %>%
+mutate(H4 = rowSums(.[184:243])) %>%
+mutate(H5 = rowSums(.[244:303])) %>%
+mutate(H6 = rowSums(.[304:363])) %>%
+mutate(H7 = rowSums(.[364:423])) %>%
+mutate(H8 = rowSums(.[424:483])) %>%
+mutate(H9 = rowSums(.[484:543])) %>%
+mutate(H10 = rowSums(.[544:603])) %>%
+mutate(H11 = rowSums(.[604:663])) %>%
+mutate(H12 = rowSums(.[664:723])) %>%
+mutate(H13 = rowSums(.[724:783])) %>%
+mutate(H14 = rowSums(.[784:843])) %>%
+mutate(H15 = rowSums(.[844:903])) %>%
+mutate(H16 = rowSums(.[904:963])) %>%
+mutate(H17 = rowSums(.[964:1023])) %>%
+mutate(H18 = rowSums(.[1024:1083])) %>%
+mutate(H19 = rowSums(.[1084:1143])) %>%
+mutate(H20 = rowSums(.[1144:1203])) %>%
+mutate(H21 = rowSums(.[1204:1263])) %>%
+mutate(H22 = rowSums(.[1264:1323])) %>%
+mutate(H23 = rowSums(.[1324:1383])) %>%
+mutate(H24 = rowSums(.[1384:1443])) %>%
+pivot_longer(H1:H24, 
+  names_to = "hour", values_to = "aph") 
+```
+
+
+
 
